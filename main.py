@@ -1,16 +1,29 @@
-# This is a sample Python script.
-
-# Press ⌃R to execute it or replace it with your code.
-# Press Double ⇧ to search everywhere for classes, files, tool windows, actions, and settings.
+import mysql.connector
+import config
 
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press ⌘F8 to toggle the breakpoint.
+def check_master_password(password):
+    correct_password = config.master_password
+    while password != correct_password:
+        print("Incorrect Password")
+        password = input("Enter password: ")
 
 
-# Press the green button in the gutter to run the script.
+def main():
+    print("~~~ Credentials Database ~~~")
+    password = input("Enter password: ")
+    check_master_password(password)
+
+
 if __name__ == '__main__':
-    print_hi('PyCharm')
+    main()
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+cnx = mysql.connector.connect(user=config.root,
+                              password=config.password,
+                              host=config.host,
+                              database=config.database)
+if cnx.is_connected():
+    db_info = cnx.get_server_info()
+    print(db_info)
+
+cnx.close()
