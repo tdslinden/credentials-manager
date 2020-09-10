@@ -2,18 +2,17 @@ import mysql.connector
 import config
 
 
+def check_master_password(password):
+    correct_password = config.master_password
+    while password != correct_password:
+        print("Incorrect Password")
+        password = input("Enter password: ")
+
+
 def main():
     print("~~~ Credentials Database ~~~")
     password = input("Enter password: ")
     check_master_password(password)
-
-
-def check_master_password(password):
-    correct_password = config.master_password
-    while password != correct_password:
-        password = input("Enter password: ")
-    print(password)
-    return True
 
 
 if __name__ == '__main__':
