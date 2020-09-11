@@ -6,27 +6,52 @@ from mysql.connector import errorcode
 def check_master_password(password):
     correct_password = config.master_password
     while password != correct_password:
-        # print("Incorrect Password")
-        password = input("Incorrect Password \n Enter password: ")
+        password = input("Incorrect Password\nEnter password: ")
 
 
-def connect_to_mysql():
+def run_mysql():
     try:
         connector = mysql.connector.connect(user=config.user,
                                             password=config.password,
                                             host=config.host,
                                             database=config.database)
 
-        if connector.is_connected():
-            db_info = connector.get_server_info()
-            print(db_info)
-
-        # do commands in here
-
-
         create_tables(connector)
+        command = input("\n"
+                        "------------------------------\n"
+                        "Commands\n"
+                        "------------------------------\n"
+                        "q: Quit Program\n"
+                        "n: Add New Credentials\n"
+                        "u: Update Current Credentials\n"
+                        "gn: Generate Password\n"
+                        "d: Delete Credentials\n"
+                        "------------------------------\n"
+                        ": ")
 
-        return connector
+        while command != "q":
+            command = input("\n"
+                            "------------------------------\n"
+                            "Commands\n"
+                            "------------------------------\n"
+                            "q: Quit Program\n"
+                            "i: Insert New Credentials\n"
+                            "u: Update Credentials\n"
+                            "gn: Generate Password\n"
+                            "d: Delete Credentials\n"
+                            "------------------------------\n"
+                            ": ")
+
+            if command == "i":
+                insert_credentials(False)
+            elif command == "u":
+                insert_credentials(True)
+            elif command == "gn":
+                generate_password()
+            elif command == "d":
+                delete_credentials()
+
+        connector.close()
 
     except mysql.connector.Error as err:
         if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
@@ -61,7 +86,11 @@ def create_tables(connector):
 
 
 # might do update with insert
-def insert_credentials():
+def insert_credentials(update):
+    x = 4
+
+
+def generate_password():
     x = 4
 
 
@@ -77,10 +106,7 @@ def main():
     print("~~~ Credentials Manager ~~~")
     password = input("Enter password: ")
     check_master_password(password)
-    connector = connect_to_mysql()
-    print("")
-
-    connector.close()
+    run_mysql()
 
 
 if __name__ == '__main__':
