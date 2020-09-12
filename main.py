@@ -1,6 +1,20 @@
 import mysql.connector
 import config
 from mysql.connector import errorcode
+from datetime import date, datetime, timedelta
+
+
+commands = "\n" \
+           "------------------------------\n" \
+           "What would you like to do?\n" \
+           "------------------------------\n" \
+           "q: Quit Program\n" \
+           "i: Insert New Credentials\n" \
+           "u: Update Current Credentials\n" \
+           "g: Generate Password\n" \
+           "d: Delete Credentials\n" \
+           "------------------------------\n" \
+           ": "
 
 
 def check_master_password(password):
@@ -17,39 +31,19 @@ def run_mysql():
                                             database=config.database)
 
         create_tables(connector)
-        command = input("\n"
-                        "------------------------------\n"
-                        "Commands\n"
-                        "------------------------------\n"
-                        "q: Quit Program\n"
-                        "n: Add New Credentials\n"
-                        "u: Update Current Credentials\n"
-                        "gn: Generate Password\n"
-                        "d: Delete Credentials\n"
-                        "------------------------------\n"
-                        ": ")
+        command = input(commands)
 
         while command != "q":
-            command = input("\n"
-                            "------------------------------\n"
-                            "Commands\n"
-                            "------------------------------\n"
-                            "q: Quit Program\n"
-                            "i: Insert New Credentials\n"
-                            "u: Update Credentials\n"
-                            "gn: Generate Password\n"
-                            "d: Delete Credentials\n"
-                            "------------------------------\n"
-                            ": ")
-
             if command == "i":
-                insert_credentials(False)
+                insert_credentials(connector)
             elif command == "u":
-                insert_credentials(True)
+                insert_credentials(connector)
             elif command == "gn":
                 generate_password()
             elif command == "d":
                 delete_credentials()
+
+            command = input(commands)
 
         connector.close()
 
@@ -57,7 +51,7 @@ def run_mysql():
         if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
             print("Incorrect Credentials")
         if err.errno == errorcode.ER_BAD_DB_ERROR:
-            print("Database does not exist")
+            print("Database Does Not Exist")
         else:
             print(err)
 
@@ -67,12 +61,12 @@ def create_tables(connector):
 
     TABLES = {}
     TABLES['credentials'] = "CREATE TABLE credentials " \
-                            "(entry int PRIMARY KEY NOT NULL AUTO_INCREMENT, " \
-                            "username varchar(50) NOT NULL," \
+                            "(username varchar(50) NOT NULL," \
                             "password varchar(15) NOT NULL," \
                             "platform varchar(15) NOT NULL," \
                             "created date NOT NULL," \
-                            "lastUpdated date)"
+                            "lastUpdated date," \
+                            "PRIMARY KEY(username, platform))"
 
     for table_name in TABLES:
         table_command = TABLES[table_name]
@@ -80,14 +74,48 @@ def create_tables(connector):
             cursor.execute(table_command)
         except mysql.connector.Error as err:
             if err.errno == errorcode.ER_TABLE_EXISTS_ERROR:
-                print("Table already exists.")
+                print("Table Already Exists.")
             else:
                 print(err.msg)
 
 
-# might do update with insert
-def insert_credentials(update):
-    x = 4
+def run_insert_prompt():
+    username = input("\nEnter username: ")
+    password = input("Enter password: ")
+    platform = input("Enter platform (e.g. Facebook): ")
+    return username, password, platform
+
+
+def insert_credentials(connector):
+    cursor = connector.cursor()
+    today = datetime.now().date()
+
+    insert_credentials_command = ("INSERT INTO credentials "
+                                  "(username, password, platform, created, lastUpdated) "
+                                  "VALUES (%s, %s, %s, %s, %s)")
+    
+    username, password, platform = run_insert_prompt()
+    credentials_data = (username, password, platform, today, today)
+    cursor.execute(insert_credentials_command, credentials_data)
+    connector.commit()
+
+
+def run_update_prompt():
+    command = "\n" \
+              "------------------------------\n" \
+              "What would you like to update?\n" \
+              "------------------------------\n" \
+              "u: Username\n" \
+              "p: Password\n" \
+              "------------------------------\n" \
+              ": "
+
+    if command == "p":
+        password = input("Enter new password: ")
+
+
+def update_credentials(connector):
+    run_update_prompt()
 
 
 def generate_password():
