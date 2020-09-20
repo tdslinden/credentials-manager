@@ -63,12 +63,13 @@ def create_tables(connector):
 
     TABLES = {}
     TABLES['credentials'] = "CREATE TABLE credentials " \
-                            "(username varchar(50) NOT NULL," \
+                            "(userId int(11) NOT NULL AUTO_INCREMENT," \
+                            "username varchar(50) NOT NULL," \
                             "password varchar(15) NOT NULL," \
                             "platform varchar(15) NOT NULL," \
                             "created date NOT NULL," \
                             "lastUpdated date," \
-                            "PRIMARY KEY(username, platform))"
+                            "PRIMARY KEY (userId))"
 
     for table_name in TABLES:
         table_command = TABLES[table_name]
@@ -135,13 +136,13 @@ def run_update_prompt(connector):
         confirmation_username = input("Enter new username:")
         while new_username != confirmation_username:
             new_username = input("Enter new username:")
-            confirmation_username = input("Enter new username:")
+            confirmation_username = input("Confirm new username:")
     elif command == "b":
         new_username = input("Enter new username:")
         confirmation_username = input("Enter new username:")
         while new_username != confirmation_username:
             new_username = input("Enter new username:")
-            confirmation_username = input("Enter new username:")
+            confirmation_username = input("Confirm new username:")
         new_password = input("Enter new password: ")
         confirmation_password = input("Confirm new password: ")
         while new_password != confirmation_password:
@@ -153,20 +154,21 @@ def run_update_prompt(connector):
 
 def update_credentials(connector):
     new_username, new_password, username, platform = run_update_prompt(connector)
+    today = datetime.now().date()
 
     update_query = ""
     if new_password and not new_username:
         update_query = ("UPDATE credentials "
-                        "SET password =  '{}' "
-                        "WHERE username = '{}' AND platform = '{}'").format(new_password, username, platform)
+                        "SET password =  '{}', lastUpdated = '{}' "
+                        "WHERE username = '{}' AND platform = '{}'").format(new_password, today, username, platform)
     elif new_username and not new_password:
         update_query = ("UPDATE credentials "
-                        "SET username =  '{}' "
-                        "WHERE username = '{}' AND platform = '{}'").format(new_username, username, platform)
+                        "SET username =  '{}', lastUpdated = '{}' "
+                        "WHERE username = '{}' AND platform = '{}'").format(new_username, today, username, platform)
     elif new_username and new_password:
         update_query = ("UPDATE credentials "
-                        "SET username =  '{}' AND password = '{}' "
-                        "WHERE username = '{}' AND platform = '{}'").format(new_username, new_password, username, platform)
+                        "SET username =  '{}', password = '{}', lastUpdated = '{}' "
+                        "WHERE username = '{}' AND platform = '{}'").format(new_username, new_password, today, username, platform)
 
     print(update_query)
     cursor = connector.cursor(buffered=True)
