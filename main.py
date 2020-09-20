@@ -37,7 +37,7 @@ def run_mysql():
             if command == "i":
                 insert_credentials(connector)
             elif command == "u":
-                run_update_prompt(connector)
+                update_credentials(connector)
             elif command == "g":
                 get_credentials(connector)
             elif command == "p":
@@ -106,34 +106,72 @@ def run_update_prompt(connector):
     username = input("\nEnter the username you would like to update: ")
     platform = input("Enter the platform the username is associated to: ")
 
-    select_credentials_query = ("SELECT EXISTS (SELECT * FROM credentials where username = '{}' AND"
-                                " platform = '{}')").format(username, platform)
+    select_credentials_query = ("SELECT count(1) FROM credentials where username = '{}' AND"
+                                " platform = '{}'").format(username, platform)
 
-    select_credentials_query1 = ("SELECT count(1) FROM credentials where username = '{}' AND"
-                                 " platform = '{}'").format(username, platform)
+    cursor = connector.cursor(buffered=True)
+    cursor.execute(select_credentials_query)
 
-    cursor = connector.cursor()
-    cursor.execute(select_credentials_query1)
+    command = input("\n"
+                    "------------------------------\n"
+                    "What would you like to update?\n"
+                    "------------------------------\n"
+                    "u: Username\n"
+                    "p: Password\n"
+                    "b: Both Username and Password\n"
+                    "------------------------------\n"
+                    ": ")
 
-    for (count) in cursor:
-        print("{}".format(count))
+    new_username = ""
+    new_password = ""
+    if command == "p":
+        new_password = input("Enter new password: ")
+        confirmation_password = input("Confirm new password: ")
+        while new_password != confirmation_password:
+            new_password = input("Enter new password: ")
+            confirmation_password = input("Confirm new password: ")
+    elif command == "u":
+        new_username = input("Enter new username:")
+        confirmation_username = input("Enter new username:")
+        while new_username != confirmation_username:
+            new_username = input("Enter new username:")
+            confirmation_username = input("Enter new username:")
+    elif command == "b":
+        new_username = input("Enter new username:")
+        confirmation_username = input("Enter new username:")
+        while new_username != confirmation_username:
+            new_username = input("Enter new username:")
+            confirmation_username = input("Enter new username:")
+        new_password = input("Enter new password: ")
+        confirmation_password = input("Confirm new password: ")
+        while new_password != confirmation_password:
+            new_password = input("Enter new password: ")
+            confirmation_password = input("Confirm new password: ")
 
-    # command = input("\n"
-    #                 "------------------------------\n"
-    #                 "What would you like to update?\n"
-    #                 "------------------------------\n"
-    #                 "u: Username\n"
-    #                 "p: Password\n"
-    #                 "b: Both Username and Password"
-    #                 "------------------------------\n"
-    #                 ": ")
-    #
-    # if command == "p":
-    #     password = input("Enter new password: ")
+    return new_username, new_password, username, platform
 
 
 def update_credentials(connector):
-    run_update_prompt()
+    new_username, new_password, username, platform = run_update_prompt(connector)
+
+    update_query = ""
+    if new_password and not new_username:
+        update_query = ("UPDATE credentials "
+                        "SET password =  '{}' "
+                        "WHERE username = '{}' AND platform = '{}'").format(new_password, username, platform)
+    elif new_username and not new_password:
+        update_query = ("UPDATE credentials "
+                        "SET username =  '{}' "
+                        "WHERE username = '{}' AND platform = '{}'").format(new_username, username, platform)
+    elif new_username and new_password:
+        update_query = ("UPDATE credentials "
+                        "SET username =  '{}' AND password = '{}' "
+                        "WHERE username = '{}' AND platform = '{}'").format(new_username, new_password, username, platform)
+
+    print(update_query)
+    cursor = connector.cursor(buffered=True)
+    cursor.execute(update_query)
+    connector.commit()
 
 
 def generate_password():
@@ -166,7 +204,8 @@ def get_credentials(connector):
         get_all_credentials_query = "SELECT username, password, platform FROM credentials"
         cursor.execute(get_all_credentials_query)
     else:
-        get_credentials_with_platform = "SELECT username, password, platform FROM credentials WHERE platform = '{}'".format(target_platform)
+        get_credentials_with_platform = "SELECT username, password, platform FROM credentials WHERE platform = '{}'".format(
+            target_platform)
         cursor.execute(get_credentials_with_platform)
 
     print("\n--------------------------------------------------------------------------------\nCredentials")
