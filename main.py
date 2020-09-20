@@ -1,7 +1,8 @@
+from datetime import datetime
 import mysql.connector
-import config
 from mysql.connector import errorcode
-from datetime import date, datetime, timedelta
+
+import config
 
 commands = "\n" \
            "------------------------------\n" \
