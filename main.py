@@ -1,8 +1,8 @@
-from datetime import datetime
+import config
+import random
 import mysql.connector
 from mysql.connector import errorcode
-
-import config
+from datetime import datetime
 
 commands = "\n" \
            "------------------------------\n" \
@@ -169,7 +169,8 @@ def update_credentials(connector):
     elif new_username and new_password:
         update_query = ("UPDATE credentials "
                         "SET username =  '{}', password = '{}', lastUpdated = '{}' "
-                        "WHERE username = '{}' AND platform = '{}'").format(new_username, new_password, today, username, platform)
+                        "WHERE username = '{}' AND platform = '{}'").format(new_username, new_password, today, username,
+                                                                            platform)
 
     cursor = connector.cursor()
     cursor.execute(update_query)
@@ -177,7 +178,32 @@ def update_credentials(connector):
 
 
 def generate_password():
-    x = 4
+    length = input("\nEnter length of password (8 - 15): ")
+    is_valid_entry = check_if_length_valid(length)
+
+    while not is_valid_entry:
+        length = input("\nEnter length of password (8 - 15): ")
+        is_valid_entry = check_if_length_valid(length)
+
+    length = int(length)
+    chars = "abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*."
+    generated_password = ""
+    for i in range(length):
+        generated_password += random.choice(chars)
+    print("Generated password: " + generated_password)
+
+
+def check_if_length_valid(length):
+    max_length = 15
+    min_length = 8
+    try:
+        length = int(length)
+        if max_length >= length >= min_length:
+            return True
+    except ValueError:
+        print("Length must be a value between 8 and 15 inclusive.")
+
+    return False
 
 
 def run_get_prompt():
@@ -212,12 +238,12 @@ def get_credentials(connector):
 
     if not any(cursor):
         print("\n No Saved Credentials.")
-
-    print("\n--------------------------------------------------------------------------------\nCredentials")
-    for (username, password, platform) in cursor:
-        print("--------------------------------------------------------------------------------")
-        print("Username: {:<20} | Password: {:<15} | Platform: {:<10}".format(username, password, platform))
-    print("\n--------------------------------------------------------------------------------")
+    else:
+        print("\n--------------------------------------------------------------------------------\nCredentials")
+        for (username, password, platform) in cursor:
+            print("--------------------------------------------------------------------------------")
+            print("Username: {:<20} | Password: {:<15} | Platform: {:<10}".format(username, password, platform))
+        print("\n--------------------------------------------------------------------------------")
 
 
 def run_delete_prompt():
