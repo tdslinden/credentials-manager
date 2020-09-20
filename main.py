@@ -8,7 +8,7 @@ commands = "\n" \
            "What would you like to do?\n" \
            "------------------------------\n" \
            "i: Insert New Credentials\n" \
-           "u: Update Current Credentials\n" \
+           "u: Update Existing Credentials\n" \
            "g: Get Credentials\n" \
            "p: Generate Password\n" \
            "d: Delete Credentials\n" \
@@ -43,7 +43,7 @@ def run_mysql():
             elif command == "p":
                 generate_password()
             elif command == "d":
-                delete_credentials()
+                delete_credentials(connector)
 
             command = input(commands)
 
@@ -170,8 +170,7 @@ def update_credentials(connector):
                         "SET username =  '{}', password = '{}', lastUpdated = '{}' "
                         "WHERE username = '{}' AND platform = '{}'").format(new_username, new_password, today, username, platform)
 
-    print(update_query)
-    cursor = connector.cursor(buffered=True)
+    cursor = connector.cursor()
     cursor.execute(update_query)
     connector.commit()
 
@@ -210,14 +209,55 @@ def get_credentials(connector):
             target_platform)
         cursor.execute(get_credentials_with_platform)
 
+    if not any(cursor):
+        print("\n No Saved Credentials.")
+
     print("\n--------------------------------------------------------------------------------\nCredentials")
     for (username, password, platform) in cursor:
         print("--------------------------------------------------------------------------------")
         print("Username: {:<20} | Password: {:<15} | Platform: {:<10}".format(username, password, platform))
+    print("\n--------------------------------------------------------------------------------")
 
 
-def delete_credentials():
-    x = 2
+def run_delete_prompt():
+    command = input("\n"
+                    "------------------------------\n"
+                    "What would you like to do?\n"
+                    "------------------------------\n"
+                    "1. Delete specific credentials.\n"
+                    "2. Delete all credentials.\n"
+                    "------------------------------\n"
+                    ":"
+                    )
+
+    username = "all"
+    platform = "all"
+    if command == "1":
+        username = input("\nEnter the username of the credentials you would like to delete: ")
+        platform = input("Enter the platform the username is associated to: ")
+    elif command == "2":
+        confirmation = input("Are you sure (y/n)? \n"
+                             ":")
+
+        if confirmation == "n":
+            run_delete_prompt()
+
+    return username, platform
+
+
+def delete_credentials(connector):
+    username, platform = run_delete_prompt()
+
+    delete_query = ""
+    if username == "all" and platform == "all":
+        delete_query = "DELETE FROM credentials"
+    else:
+        delete_query = "DELETE FROM credentials " \
+                       "WHERE username = '{}' AND platform = '{}'".format(username, platform)
+
+    cursor = connector.cursor()
+    cursor.execute(delete_query)
+    connector.commit()
 
 
 def main():
