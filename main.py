@@ -1,29 +1,298 @@
-import mysql.connector
 import config
+import random
+import mysql.connector
+from mysql.connector import errorcode
+from datetime import datetime
+
+commands = "\n" \
+           "------------------------------\n" \
+           "What would you like to do?\n" \
+           "------------------------------\n" \
+           "i: Insert New Credentials\n" \
+           "u: Update Existing Credentials\n" \
+           "g: Get Credentials\n" \
+           "p: Generate Password\n" \
+           "d: Delete Credentials\n" \
+           "q: Quit Program\n" \
+           "------------------------------\n" \
+           ": "
 
 
 def check_master_password(password):
     correct_password = config.master_password
     while password != correct_password:
-        print("Incorrect Password")
-        password = input("Enter password: ")
+        password = input("Incorrect Password\nEnter password: ")
+
+
+def run_mysql():
+    try:
+        connector = mysql.connector.connect(user=config.user,
+                                            password=config.password,
+                                            host=config.host,
+                                            database=config.database)
+
+        create_tables(connector)
+        command = input(commands)
+
+        while command != "q":
+            if command == "i":
+                insert_credentials(connector)
+            elif command == "u":
+                update_credentials(connector)
+            elif command == "g":
+                get_credentials(connector)
+            elif command == "p":
+                generate_password()
+            elif command == "d":
+                delete_credentials(connector)
+
+            command = input(commands)
+
+        connector.close()
+
+    except mysql.connector.Error as err:
+        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+            print("Incorrect Credentials")
+        if err.errno == errorcode.ER_BAD_DB_ERROR:
+            print("Database Does Not Exist")
+        else:
+            print(err)
+
+
+def create_tables(connector):
+    cursor = connector.cursor()
+
+    TABLES = {}
+    TABLES['credentials'] = "CREATE TABLE credentials " \
+                            "(userId int(11) NOT NULL AUTO_INCREMENT," \
+                            "username varchar(50) NOT NULL," \
+                            "password varchar(15) NOT NULL," \
+                            "platform varchar(15) NOT NULL," \
+                            "created date NOT NULL," \
+                            "lastUpdated date," \
+                            "PRIMARY KEY (userId))"
+
+    for table_name in TABLES:
+        table_command = TABLES[table_name]
+        try:
+            cursor.execute(table_command)
+        except mysql.connector.Error as err:
+            if err.errno == errorcode.ER_TABLE_EXISTS_ERROR:
+                print("Table Already Exists.")
+            else:
+                print(err.msg)
+
+
+def run_insert_prompt():
+    username = input("\nEnter username: ")
+    password = input("Enter password: ")
+    platform = input("Enter platform (e.g. Facebook): ")
+    return username, password, platform
+
+
+def insert_credentials(connector):
+    cursor = connector.cursor()
+    today = datetime.now().date()
+
+    insert_credentials_query = ("INSERT INTO credentials "
+                                "(username, password, platform, created, lastUpdated) "
+                                "VALUES (%s, %s, %s, %s, %s)")
+
+    username, password, platform = run_insert_prompt()
+    credentials_data = (username, password, platform, today, today)
+    cursor.execute(insert_credentials_query, credentials_data)
+    connector.commit()
+
+
+def run_update_prompt(connector):
+    username = input("\nEnter the username you would like to update: ")
+    platform = input("Enter the platform the username is associated to: ")
+
+    select_credentials_query = ("SELECT count(1) FROM credentials where username = '{}' AND"
+                                " platform = '{}'").format(username, platform)
+
+    cursor = connector.cursor(buffered=True)
+    cursor.execute(select_credentials_query)
+
+    command = input("\n"
+                    "------------------------------\n"
+                    "What would you like to update?\n"
+                    "------------------------------\n"
+                    "u: Username\n"
+                    "p: Password\n"
+                    "b: Both Username and Password\n"
+                    "------------------------------\n"
+                    ": ")
+
+    new_username = ""
+    new_password = ""
+    if command == "p":
+        new_password = input("Enter new password: ")
+        confirmation_password = input("Confirm new password: ")
+        while new_password != confirmation_password:
+            new_password = input("Enter new password: ")
+            confirmation_password = input("Confirm new password: ")
+    elif command == "u":
+        new_username = input("Enter new username:")
+        confirmation_username = input("Enter new username:")
+        while new_username != confirmation_username:
+            new_username = input("Enter new username:")
+            confirmation_username = input("Confirm new username:")
+    elif command == "b":
+        new_username = input("Enter new username:")
+        confirmation_username = input("Enter new username:")
+        while new_username != confirmation_username:
+            new_username = input("Enter new username:")
+            confirmation_username = input("Confirm new username:")
+        new_password = input("Enter new password: ")
+        confirmation_password = input("Confirm new password: ")
+        while new_password != confirmation_password:
+            new_password = input("Enter new password: ")
+            confirmation_password = input("Confirm new password: ")
+
+    return new_username, new_password, username, platform
+
+
+def update_credentials(connector):
+    new_username, new_password, username, platform = run_update_prompt(connector)
+    today = datetime.now().date()
+
+    update_query = ""
+    if new_password and not new_username:
+        update_query = ("UPDATE credentials "
+                        "SET password =  '{}', lastUpdated = '{}' "
+                        "WHERE username = '{}' AND platform = '{}'").format(new_password, today, username, platform)
+    elif new_username and not new_password:
+        update_query = ("UPDATE credentials "
+                        "SET username =  '{}', lastUpdated = '{}' "
+                        "WHERE username = '{}' AND platform = '{}'").format(new_username, today, username, platform)
+    elif new_username and new_password:
+        update_query = ("UPDATE credentials "
+                        "SET username =  '{}', password = '{}', lastUpdated = '{}' "
+                        "WHERE username = '{}' AND platform = '{}'").format(new_username, new_password, today, username,
+                                                                            platform)
+
+    cursor = connector.cursor()
+    cursor.execute(update_query)
+    connector.commit()
+
+
+def generate_password():
+    length = input("\nEnter length of password (8 - 15): ")
+    is_valid_entry = check_if_length_valid(length)
+
+    while not is_valid_entry:
+        length = input("\nEnter length of password (8 - 15): ")
+        is_valid_entry = check_if_length_valid(length)
+
+    length = int(length)
+    chars = "abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*."
+    generated_password = ""
+    for i in range(length):
+        generated_password += random.choice(chars)
+    print("Generated password: " + generated_password)
+
+
+def check_if_length_valid(length):
+    max_length = 15
+    min_length = 8
+    try:
+        length = int(length)
+        if max_length >= length >= min_length:
+            return True
+    except ValueError:
+        print("Length must be a value between 8 and 15 inclusive.")
+
+    return False
+
+
+def run_get_prompt():
+    command = input("\n"
+                    "------------------------------\n"
+                    "What would you like to do?\n"
+                    "------------------------------\n"
+                    "1. Get all credentials.\n"
+                    "2. Get credentials based on platform.\n"
+                    "------------------------------\n"
+                    ":"
+                    )
+
+    if command == '2':
+        platform = input("\nEnter the platform: ")
+        return platform
+
+    return "all"
+
+
+def get_credentials(connector):
+    target_platform = run_get_prompt()
+    cursor = connector.cursor()
+
+    if target_platform == "all":
+        get_all_credentials_query = "SELECT username, password, platform FROM credentials"
+        cursor.execute(get_all_credentials_query)
+    else:
+        get_credentials_with_platform = "SELECT username, password, platform FROM credentials WHERE platform = '{}'".format(
+            target_platform)
+        cursor.execute(get_credentials_with_platform)
+
+    if not any(cursor):
+        print("\n No Saved Credentials.")
+    else:
+        print("\n--------------------------------------------------------------------------------\nCredentials")
+        for (username, password, platform) in cursor:
+            print("--------------------------------------------------------------------------------")
+            print("Username: {:<20} | Password: {:<15} | Platform: {:<10}".format(username, password, platform))
+        print("\n--------------------------------------------------------------------------------")
+
+
+def run_delete_prompt():
+    command = input("\n"
+                    "------------------------------\n"
+                    "What would you like to do?\n"
+                    "------------------------------\n"
+                    "1. Delete specific credentials.\n"
+                    "2. Delete all credentials.\n"
+                    "------------------------------\n"
+                    ":"
+                    )
+
+    username = "all"
+    platform = "all"
+    if command == "1":
+        username = input("\nEnter the username of the credentials you would like to delete: ")
+        platform = input("Enter the platform the username is associated to: ")
+    elif command == "2":
+        confirmation = input("Are you sure (y/n)? \n"
+                             ":")
+
+        if confirmation == "n":
+            run_delete_prompt()
+
+    return username, platform
+
+
+def delete_credentials(connector):
+    username, platform = run_delete_prompt()
+
+    delete_query = ""
+    if username == "all" and platform == "all":
+        delete_query = "DELETE FROM credentials"
+    else:
+        delete_query = "DELETE FROM credentials " \
+                       "WHERE username = '{}' AND platform = '{}'".format(username, platform)
+
+    cursor = connector.cursor()
+    cursor.execute(delete_query)
+    connector.commit()
 
 
 def main():
-    print("~~~ Credentials Database ~~~")
+    print("~~~ Credentials Manager ~~~")
     password = input("Enter password: ")
     check_master_password(password)
+    run_mysql()
 
 
 if __name__ == '__main__':
     main()
-
-cnx = mysql.connector.connect(user=config.root,
-                              password=config.password,
-                              host=config.host,
-                              database=config.database)
-if cnx.is_connected():
-    db_info = cnx.get_server_info()
-    print(db_info)
-
-cnx.close()
