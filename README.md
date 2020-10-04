@@ -25,3 +25,7 @@ MySQL must be first installed on the operating system. You can choose to use the
 `d`: Delete Credentials
 
 `q`: Quit Program
+
+## Improvements
+- More error handling can be included to improve user friendliness. 
+- Make a GUI 
