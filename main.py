@@ -29,7 +29,8 @@ def run_mysql():
         connector = mysql.connector.connect(user=config.user,
                                             password=config.password,
                                             host=config.host,
-                                            database=config.database)
+                                            database=config.database,
+                                            auth_plugin='mysql_native_password')
 
         create_tables(connector)
         command = input(commands)
@@ -114,6 +115,9 @@ def run_update_prompt(connector):
     cursor = connector.cursor(buffered=True)
     cursor.execute(select_credentials_query)
 
+    if not cursor:
+        raise Exception
+
     command = input("\n"
                     "------------------------------\n"
                     "What would you like to update?\n"
@@ -154,7 +158,16 @@ def run_update_prompt(connector):
 
 
 def update_credentials(connector):
-    new_username, new_password, username, platform = run_update_prompt(connector)
+    new_username = ""
+    new_password = ""
+    username = ""
+    platform = ""
+
+    try:
+        new_username, new_password, username, platform = run_update_prompt(connector)
+    except:
+        print("The account associated with the username and platform does not exist")
+
     today = datetime.now().date()
 
     update_query = ""
@@ -243,7 +256,7 @@ def get_credentials(connector):
         for (username, password, platform) in cursor:
             print("--------------------------------------------------------------------------------")
             print("Username: {:<20} | Password: {:<15} | Platform: {:<10}".format(username, password, platform))
-        print("\n--------------------------------------------------------------------------------")
+        print("--------------------------------------------------------------------------------")
 
 
 def run_delete_prompt():
@@ -275,7 +288,6 @@ def run_delete_prompt():
 def delete_credentials(connector):
     username, platform = run_delete_prompt()
 
-    delete_query = ""
     if username == "all" and platform == "all":
         delete_query = "DELETE FROM credentials"
     else:
