@@ -177,7 +177,7 @@ def run_delete_prompt():
 
 
 def run_password_manager():
-    print(('-' * 13) + 'Password Manager' + ('-' * 13))
+    print(('-' * 13) + 'Credentials Manager' + ('-' * 13))
     password = input("Enter password: ")
 
     correct_password = config.master_password
