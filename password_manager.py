@@ -1,4 +1,4 @@
-from database_manager import insert_credentials, update_credentials, get_credentials, delete_credentials
+from database_manager import insert_credentials, update_credentials, get_credentials, delete_credentials, check_credentials
 import config
 import random
 
@@ -51,15 +51,15 @@ def menu():
 
     while command != "q":
         if command == "i":
-            insert_credentials()
+            run_insert_prompt()
         elif command == "u":
-            update_credentials()
+            run_update_prompt()
         elif command == "g":
-            get_credentials()
+            run_get_prompt()
         elif command == "p":
             generate_password()
         else:
-            delete_credentials()
+            run_delete_prompt()
 
         command = input(commands)
 
@@ -68,59 +68,55 @@ def run_insert_prompt():
     username = input("\nEnter username: ")
     password = input("Enter password: ")
     platform = input("Enter platform (e.g. Facebook): ")
-    return username, password, platform
+    insert_credentials(username, password, platform)
 
 
 def run_update_prompt():
     username = input("\nEnter the username you would like to update: ")
     platform = input("Enter the platform the username is associated to: ")
 
-    select_credentials_query = ("SELECT count(1) FROM credentials where username = '{}' AND"
-                                " platform = '{}'").format(username, platform)
+    credentials_exist = check_credentials(username, platform)
 
-    cursor = connector.cursor(buffered=True)
-    cursor.execute(select_credentials_query)
+    if credentials_exist:
+        command = input("\n"
+                        "------------------------------\n"
+                        "What would you like to update?\n"
+                        "------------------------------\n"
+                        "u: Username\n"
+                        "p: Password\n"
+                        "b: Both Username and Password\n"
+                        "------------------------------\n"
+                        ": ")
 
-    if not cursor:
-        raise Exception
-
-    command = input("\n"
-                    "------------------------------\n"
-                    "What would you like to update?\n"
-                    "------------------------------\n"
-                    "u: Username\n"
-                    "p: Password\n"
-                    "b: Both Username and Password\n"
-                    "------------------------------\n"
-                    ": ")
-
-    new_username = ""
-    new_password = ""
-    if command == "p":
-        new_password = input("Enter new password: ")
-        confirmation_password = input("Confirm new password: ")
-        while new_password != confirmation_password:
+        new_username = ""
+        new_password = ""
+        if command == "p":
             new_password = input("Enter new password: ")
             confirmation_password = input("Confirm new password: ")
-    elif command == "u":
-        new_username = input("Enter new username:")
-        confirmation_username = input("Enter new username:")
-        while new_username != confirmation_username:
+            while new_password != confirmation_password:
+                new_password = input("Enter new password: ")
+                confirmation_password = input("Confirm new password: ")
+        elif command == "u":
             new_username = input("Enter new username:")
-            confirmation_username = input("Confirm new username:")
-    elif command == "b":
-        new_username = input("Enter new username:")
-        confirmation_username = input("Enter new username:")
-        while new_username != confirmation_username:
+            confirmation_username = input("Enter new username:")
+            while new_username != confirmation_username:
+                new_username = input("Enter new username:")
+                confirmation_username = input("Confirm new username:")
+        elif command == "b":
             new_username = input("Enter new username:")
-            confirmation_username = input("Confirm new username:")
-        new_password = input("Enter new password: ")
-        confirmation_password = input("Confirm new password: ")
-        while new_password != confirmation_password:
+            confirmation_username = input("Enter new username:")
+            while new_username != confirmation_username:
+                new_username = input("Enter new username:")
+                confirmation_username = input("Confirm new username:")
             new_password = input("Enter new password: ")
             confirmation_password = input("Confirm new password: ")
+            while new_password != confirmation_password:
+                new_password = input("Enter new password: ")
+                confirmation_password = input("Confirm new password: ")
 
-    return new_username, new_password, username, platform
+        update_credentials(new_username, new_password, username, platform)
+    else:
+        print("The account associated with the username and platform does not exist")
 
 
 def run_get_prompt():
@@ -134,11 +130,24 @@ def run_get_prompt():
                     ":"
                     )
 
+    platform = 'all'
     if command == '2':
         platform = input("\nEnter the platform: ")
-        return platform
+    credentials = get_credentials(platform)
 
-    return "all"
+    if credentials:
+        number_of_dashes = 86
+        print('-' * number_of_dashes)
+        print(('-' * 40) + "Result" + ('-' * 40))
+        for credential in credentials:
+            username = credential['username']
+            password = credential['password']
+            platform = credential['platform']
+            print('-' * number_of_dashes)
+            print("Username: {:<20} | Password: {:<15} | Platform: {:<10}".format(username, password, platform))
+        print('-' * number_of_dashes)
+    else:
+        print("\n No Saved Credentials.")
 
 
 def run_delete_prompt():
@@ -164,7 +173,7 @@ def run_delete_prompt():
         if confirmation == "n":
             delete_credentials()
 
-    return username, platform
+    delete_credentials(username, platform)
 
 
 def run_password_manager():
@@ -175,7 +184,7 @@ def run_password_manager():
     while password != correct_password:
         password = input("Incorrect Password\nEnter password: ")
 
-    print("Log In Successful")
+    print("\nLog In Successful!")
 
     menu()
     exit()
