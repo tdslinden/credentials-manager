@@ -118,7 +118,7 @@ def get_credentials(target_platform):
     return credentials
 
 
-def delete_credentials(username, platform):
+def delete_credentials(username="all", platform="all"):
     if username == "all" and platform == "all":
         delete_query = "DELETE FROM credentials"
     else:

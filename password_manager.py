@@ -115,6 +115,7 @@ def run_update_prompt():
                 confirmation_password = input("Confirm new password: ")
 
         update_credentials(new_username, new_password, username, platform)
+        print("\nUpdate Successful!")
     else:
         print("The account associated with the username and platform does not exist")
 
@@ -127,7 +128,7 @@ def run_get_prompt():
                     "1. Get all credentials.\n"
                     "2. Get credentials based on platform.\n"
                     "------------------------------\n"
-                    ":"
+                    ": "
                     )
 
     platform = 'all'
@@ -137,7 +138,7 @@ def run_get_prompt():
 
     if credentials:
         number_of_dashes = 86
-        print('-' * number_of_dashes)
+        print("\n" + '-' * number_of_dashes)
         print(('-' * 40) + "Result" + ('-' * 40))
         for credential in credentials:
             username = credential['username']
@@ -158,22 +159,21 @@ def run_delete_prompt():
                     "1. Delete specific credentials.\n"
                     "2. Delete all credentials.\n"
                     "------------------------------\n"
-                    ":"
+                    ": "
                     )
 
-    username = "all"
-    platform = "all"
     if command == "1":
         username = input("\nEnter the username of the credentials you would like to delete: ")
         platform = input("Enter the platform the username is associated to: ")
+        delete_credentials(username=username, platform=platform)
+        print("\nDelete Successful!")
     elif command == "2":
         confirmation = input("Are you sure (y/n)? \n"
                              ":")
 
-        if confirmation == "n":
+        if confirmation == "y":
             delete_credentials()
-
-    delete_credentials(username, platform)
+            print("\nDelete Successful!")
 
 
 def run_password_manager():
