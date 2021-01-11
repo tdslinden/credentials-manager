@@ -1,6 +1,6 @@
 # Credentials Manager
 
-Credentials Manager is a program to store credentials on a MySQL database with a terminal (command prompt) interface.
+Credentials Manager is a program to store credentials on a MySQL database through your terminal (command prompt) interface.
 
 ## Prerequisite 
 MySQL must be first installed on the operating system. You can choose to use the default databases for your tables. However, it is recommended to create your own database.
