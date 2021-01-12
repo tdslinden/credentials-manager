@@ -11,7 +11,7 @@ MySQL must be first installed on the operating system. You can choose to use the
 3. Setup the config.py file
     a. Replace all the '<>' with the associated information. 
     E.g. `master_password = <replace_with_your_password_here>` 
-4. Run main.py
+4. Run credentials_manager.py
 
 ## Main Commands
 `i`: Insert New Credentials 
